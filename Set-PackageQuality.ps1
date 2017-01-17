@@ -1,5 +1,6 @@
 param
 (
+        [ValidateSet("nuget","npm")][string] $feedType = "nuget",
         [string] $feedName="",
         [string] $packageId="",
         [string] $packageVersion="",
@@ -50,6 +51,7 @@ function Set-PackageQuality
     [OutputType([object])]
     param
     (
+        [string] $feedType="nuget",
         [string] $feedName="",
         [string] $packageId="",
         [string] $packageVersion="",
@@ -58,7 +60,14 @@ function Set-PackageQuality
     )
 
     $token = New-VSTSAuthenticationToken
-    $releaseViewURL = "$basepackageurl/$feedName/nuget/packages/$packageId/versions/$($packageVersion)?api-version=3.0-preview.1"
+    
+    #API URL is slightly different for npm vs. nuget...
+    switch($feedType)
+    {
+        "npm" { $releaseViewURL = "$basepackageurl/$feedName/npm/$packageId/versions/$($packageVersion)?api-version=3.0-preview.1" }
+        "nuget" { $releaseViewURL = "$basepackageurl/$feedName/nuget/packages/$packageId/versions/$($packageVersion)?api-version=3.0-preview.1" }
+        default { $releaseViewURL = "$basepackageurl/$feedName/nuget/packages/$packageId/versions/$($packageVersion)?api-version=3.0-preview.1" }
+    }
     
      $json = @{
         views = @{
@@ -75,5 +84,5 @@ function Set-PackageQuality
 
 if (-not $pester)
 {
-    Set-PackageQuality -feedName $feedName -packageId $packageId -packageVersion $packageVersion -packageQuality $packageQuality
+    Set-PackageQuality -feedType $feedType -feedName $feedName -packageId $packageId -packageVersion $packageVersion -packageQuality $packageQuality
 }

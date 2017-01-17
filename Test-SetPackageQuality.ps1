@@ -7,10 +7,11 @@ cd $PSScriptRoot
 
 . .\Set-PackageQuality.ps1 -pester
 
+$feedType = "nuget"
 $feedName = "Feedname"
 $packageId = "packageID" 
 $packageVersion = "Version"
 $packageQuality = "ReleaseViewName"
 
-Set-PackageQuality -feedName $feedName -packageId $packageId -packageVersion $packageVersion -packageQuality $packageQuality
+Set-PackageQuality -feedType $feedType -feedName $feedName -packageId $packageId -packageVersion $packageVersion -packageQuality $packageQuality
 

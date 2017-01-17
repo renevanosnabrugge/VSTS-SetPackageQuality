@@ -1,5 +1,6 @@
 param
 (
+        [ValidateSet("nuget","npm")][string] $feedType = "nuget",
         [string] $feedName="",
         [string] $packageId="",
         [string] $packageVersion="",
@@ -8,11 +9,9 @@ param
 )
 
 #global variables
-$baseurl = $env:SYSTEM_TEAMFOUNDATIONCOLLECTIONURI 
-$baseurl += $env:SYSTEM_TEAMPROJECT + "/_apis"
-$basepackageurl = $env:SYSTEM_TEAMFOUNDATIONSERVERURI  -replace ".visualstudio.com/", ".pkgs.visualstudio.com/DefaultCollection/_apis/packaging/feeds"
+$account = ($env:SYSTEM_TEAMFOUNDATIONSERVERURI -replace "https://(.*)\.visualstudio\.com/", '$1').split('.')[0]
+$basepackageurl = ("https://{0}.pkgs.visualstudio.com/DefaultCollection/_apis/packaging/feeds" -f $account)
 
-Write-Debug  "baseurl=$baseurl"
 Write-Debug  "basepackageurl=$basepackageurl"
 
 <#
@@ -52,6 +51,7 @@ function Set-PackageQuality
     [OutputType([object])]
     param
     (
+        [string] $feedType="nuget",
         [string] $feedName="",
         [string] $packageId="",
         [string] $packageVersion="",
@@ -60,23 +60,29 @@ function Set-PackageQuality
     )
 
     $token = New-VSTSAuthenticationToken
-    $releaseViewURL = "$basepackageurl/$feedName/nuget/packages/$packageId/versions/$($packageVersion)?api-version=3.0-preview.1"
     
-    #Queue a new build for this definition
-    $json = @"
+    #API URL is slightly different for npm vs. nuget...
+    switch($feedType)
     {
-        "views": 
-            { "op":"add", 
-              "path":"/views/-", 
-              "value":"$packageQuality" }
-    },
-"@
-    $response = Invoke-RestMethod -Uri $releaseViewURL -Headers @{Authorization = $token}   -ContentType "application/json" -Method Patch -Body $json
+        "npm" { $releaseViewURL = "$basepackageurl/$feedName/npm/$packageId/versions/$($packageVersion)?api-version=3.0-preview.1" }
+        "nuget" { $releaseViewURL = "$basepackageurl/$feedName/nuget/packages/$packageId/versions/$($packageVersion)?api-version=3.0-preview.1" }
+        default { $releaseViewURL = "$basepackageurl/$feedName/nuget/packages/$packageId/versions/$($packageVersion)?api-version=3.0-preview.1" }
+    }
+    
+     $json = @{
+        views = @{
+            op = "add"
+            path = "/views/-"
+            value = "$packageQuality"
+        }
+    }
+
+    $response = Invoke-RestMethod -Uri $releaseViewURL -Headers @{Authorization = $token}   -ContentType "application/json" -Method Patch -Body (ConvertTo-Json $json)
     return $response
 }
 
 
 if (-not $pester)
 {
-    Set-PackageQuality -feedName $feedName -packageId $packageId -packageVersion $packageVersion -packageQuality $packageQuality
+    Set-PackageQuality -feedType $feedType -feedName $feedName -packageId $packageId -packageVersion $packageVersion -packageQuality $packageQuality
 }

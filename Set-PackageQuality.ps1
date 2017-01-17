@@ -66,7 +66,7 @@ function Set-PackageQuality
         views = @{
             op = "add"
             path = "/views/-"
-            value = "$releaseView"
+            value = "$packageQuality"
         }
     }
 

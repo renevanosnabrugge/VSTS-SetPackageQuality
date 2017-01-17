@@ -62,16 +62,15 @@ function Set-PackageQuality
     $token = New-VSTSAuthenticationToken
     $releaseViewURL = "$basepackageurl/$feedName/nuget/packages/$packageId/versions/$($packageVersion)?api-version=3.0-preview.1"
     
-    #Queue a new build for this definition
-    $json = @"
-    {
-        "views": 
-            { "op":"add", 
-              "path":"/views/-", 
-              "value":"$packageQuality" }
-    },
-"@
-    $response = Invoke-RestMethod -Uri $releaseViewURL -Headers @{Authorization = $token}   -ContentType "application/json" -Method Patch -Body $json
+     $json = @{
+        views = @{
+            op = "add"
+            path = "/views/-"
+            value = "$releaseView"
+        }
+    }
+
+    $response = Invoke-RestMethod -Uri $releaseViewURL -Headers @{Authorization = $token}   -ContentType "application/json" -Method Patch -Body (ConvertTo-Json $json)
     return $response
 }
 
